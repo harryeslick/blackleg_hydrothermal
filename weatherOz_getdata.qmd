@@ -1,0 +1,97 @@
+---
+title: ""
+author: "Harry Eslick"
+date: "`r Sys.Date()`"
+output: html_document
+number-sections: true
+format:
+  html:
+    code-link: true
+---
+
+# Download data from weatherOz
+
+
+
+```{r load, warning=FALSE, message=FALSE}
+#| context: setup
+#| echo: false
+library(ggplot2)
+library(weatherOz)
+library(kableExtra)
+library(dplyr)
+source("~/.Rprofile")
+api_key = Sys.getenv("DPIRD_API_KEY")
+
+
+```
+
+Downloading weather data to match balckleg data from `Pseudothecia_Maturity_Dates_khangura2007.csv`.
+Stations:
+
+| Location      | Stations                 | Code   |
+|---------------|------------------        |--------|
+| East Chapman  | Nabawa                   | 008028 |
+| Merredin      | Merredin                 | 010092 |
+| Mount Barker  | Mount Barker             | 009581 |
+| Wongan Hills  | Wongan Hills Res Station | 008138 |
+
+
+Years
+
+- 1998
+- 1999
+- 2000
+
+```{r }
+# CH start data = 2008
+(meta <- get_stations_metadata(station_name="Wongan Hills", which_api = "all") |> filter (state=="WA"))
+find_nearby_stations(latitude = meta$latitude, longitude = meta$longitude)#api_key = Sys.getenv("SILO_API_KEY"))
+
+
+
+```
+
+```{r }
+# Load necessary libraries
+library(leaflet)
+
+df  <- find_nearby_stations(latitude = meta$latitude, longitude = meta$longitude)#api_key = Sys.getenv("SILO_API_KEY"))
+
+
+# Create a leaflet map
+leaflet(df) %>%
+  addTiles() %>%
+  addMarkers(~longitude, ~latitude, popup = ~station_name)
+
+```
+
+```{r }
+
+stations <- c("008028", "010092", "009581", "008138")
+
+
+all_data <- list()
+for (code in stations) {
+    dd <- get_patched_point(station_code = code,
+                            start_date = "19980101",
+                            end_date = "20001231",
+                            values = c(
+"all"
+                            )
+    )
+    all_data[[code]] <- dd
+}
+
+# Combine all dataframes into a single composite dataframe
+composite_df <- bind_rows(all_data)
+
+head(composite_df)
+```
+
+
+```{r}
+write.csv(composite_df, "khangura2007_weather_1998-2000.csv", row.names = FALSE)
+
+```
+
