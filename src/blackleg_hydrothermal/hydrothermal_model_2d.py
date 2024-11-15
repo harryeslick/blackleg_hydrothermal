@@ -41,6 +41,12 @@ def hydrothermal_FPM_cumulative(rainfall, tmax, tmin, evaporation):
     fpm = hydrothermal_FPM(rainfall, tmax, tmin, evaporation)
     fpm_cumsum = fpm.cumsum(axis=0)
     # current_pm = fpm_cumsum[-1]
+
+        # apply original data mask
+    mask = np.isnan(rainfall)
+    fpm_cumsum = fpm_cumsum.astype(float)
+    fpm_cumsum[mask] = np.nan
+
     return fpm_cumsum
 
 def get_pm_date_hydrothermal(rainfall, tmax, tmin, evaporation, date_sequence):

@@ -127,16 +127,20 @@ def gdd_sinusoidal_2d(air_tmax, air_tmin,n_time_steps=24, tt_x = [0, 26, 34], tt
     >>> df["gdd_sinusoidal"] = df.apply(lambda row: gdd_sinusoidal(row['air_tmax'], row['air_tmin']), axis=1)
 
     """
-    assert all(air_tmax >= air_tmin), "air_tmax must be greater than air_tmin"
+    np.array(air_tmax)[np.isnan(air_tmax)] = 0
+    np.array(air_tmin)[np.isnan(air_tmin)] = 0
+    assert (air_tmax >= air_tmin).all(), "air_tmax must be greater than air_tmin"
     assert tt_x == sorted(tt_x), "tt_x must be in ascending order"
 
     df = get_diurnal_fraction(n_segments=n_time_steps)
     dfrac = df.frac.to_numpy()
 
     # interpolate temperature sequence between daily min and max
-    air_tmin = np.array(air_tmin)[:, None]
-    air_tmax = np.array(air_tmax)[:, None]
-    temp_seq = air_tmin + (air_tmax - air_tmin) * dfrac[None,:]
+    air_tmin = np.expand_dims(air_tmin, axis=-1)
+    air_tmax = np.expand_dims(air_tmax, axis=-1)
+    dfrac = np.expand_dims(dfrac, axis=0)
+    temp_seq = air_tmin + (air_tmax - air_tmin) * dfrac
+
 
 
     # get tt for each time period using cardinal temperatures

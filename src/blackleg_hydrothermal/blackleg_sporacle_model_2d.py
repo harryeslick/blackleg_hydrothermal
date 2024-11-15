@@ -35,6 +35,12 @@ def blackleg_sporacle_FPM_cumulative(rainfall, tmax, tmin):
     fpm = blackleg_sporacle_FPM(rainfall7, air_tmean10, air_tmean)
     fpm_cumsum = fpm.cumsum(axis=0)
     # current_pm = fpm_cumsum[-1]
+
+    # apply original data mask
+    mask = np.isnan(rainfall)
+    fpm_cumsum = fpm_cumsum.astype(float)
+    fpm_cumsum[mask] = np.nan
+
     return fpm_cumsum
 
 
