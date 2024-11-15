@@ -14,15 +14,15 @@ Weather data used for the following locations:
 # %%	imports										 |
 import pandas as pd
 import datetime
-from blackleg_hydrothermal.hydrothermal_model import hydrothermal_run
 import numpy as np
 
 import matplotlib.pyplot as plt
 import plotly.express as px
 import statsmodels.api as sm
 
-from blackleg_hydrothermal.blackleg_sporacle_model import blackleg_sporacle_run
-from blackleg_hydrothermal.sporacleEzy_model import blackleg_sporacleEzy_run
+from blackleg_hydrothermal.hydrothermal_model_2d import get_pm_date_hydrothermal
+from blackleg_hydrothermal.blackleg_sporacle_model_2d import get_pm_date_blackleg_sporacle
+from blackleg_hydrothermal.sporacleEzy_model_2d import get_pm_date_sporacleEzy
 
 # %%											 |
 df = pd.read_csv("data/Pseudothecia_Maturity_Dates_khangura2007.csv")
@@ -45,7 +45,7 @@ for i, row in df.iterrows():
     # break
     station_code = station_map[row.Location]
     weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy()
-    ddf, date = hydrothermal_run(weather_data)
+    date = get_pm_date_hydrothermal(weather_data.rainfall, weather_data.air_tmax, weather_data.air_tmin, weather_data.evap_comb, weather_data.date)
     dt = datetime.datetime.strptime(date, "%Y-%m-%d")
     day_of_year = dt.timetuple().tm_yday
     pred_dates.append(day_of_year)
