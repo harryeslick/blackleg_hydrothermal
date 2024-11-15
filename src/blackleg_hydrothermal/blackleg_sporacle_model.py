@@ -28,6 +28,10 @@ def blackleg_sporacle_FPM(rainfall, tmax, tmin):
 
 
 def blackleg_sporacle_run(df):
+    # rolling sum method results in nan values for the first 3 days  / 10 for temp.
+    # this results in loss of fpm values where summer rainfall was observed, eg 1999 Mount Barker
+    # as a result, the 2d model performs worse than the 1d model,agaist the data
+    # however, the 2d model is a more correct representation of the model in the literature
     df["rain7"] = df["rainfall"].rolling(window=RAIN_THRESHOLD_DAYS).sum()
     df["air_tmean"] = (df["air_tmax"] + df["air_tmin"])/2
     df["air_tmean10"] = df["air_tmean"].rolling(window=T_THRESHOLD_DAYS).mean()

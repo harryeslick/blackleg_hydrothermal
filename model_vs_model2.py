@@ -11,6 +11,7 @@ Weather data used for the following locations:
 | Wongan Hills  | Wongan Hills Res Station | 008138 |
 
 """
+
 # %%	imports										 |
 import pandas as pd
 import datetime
@@ -21,8 +22,8 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import statsmodels.api as sm
 
-from blackleg_hydrothermal.blackleg_sporacle_model import blackleg_sporacle_run
-from blackleg_hydrothermal.sporacleEzy_model import blackleg_sporacleEzy_run
+import blackleg_hydrothermal.hydrothermal_model as se
+import blackleg_hydrothermal.hydrothermal_model_2d as se2
 
 # %%											 |
 df = pd.read_csv("data/Pseudothecia_Maturity_Dates_khangura2007.csv")
@@ -35,63 +36,87 @@ wd.station_name.unique()
 
 station_map = {'East Chapman':8028, 'Merredin':10092, 'Mount Barker':9581, 'Wongan Hills':8138}
 
-
-wd[wd.station_code == station_map['Mount Barker']]
-
-# %%	Run hydrothermal model										 |
+# %%	Run se										 |
 
 pred_dates = []
 for i, row in df.iterrows():
     # break
     station_code = station_map[row.Location]
-    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy()
-    ddf, date = hydrothermal_run(weather_data)
+    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy().reset_index(drop=True)
+    ddf, date = se.hydrothermal_run(weather_data)
     dt = datetime.datetime.strptime(date, "%Y-%m-%d")
     day_of_year = dt.timetuple().tm_yday
     pred_dates.append(day_of_year)
 
-    # add fpm values to weather data
-    wd.loc[(wd.station_code == station_code) & (wd.year == row.Year), "fpm_hydrothermal"] = ddf.FPM_cumsum.values
+df['se'] = pred_dates
 
-df['doy_hydrothermal'] = pred_dates
+# %%	run se2										 |
 
-# %%	Run sporacleEzy										 |
 
 pred_dates = []
 for i, row in df.iterrows():
+    # if i==10:
+    #     break
     # break
     station_code = station_map[row.Location]
-    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy()
-    ddf, date = blackleg_sporacleEzy_run(weather_data)
-    dt = datetime.datetime.strptime(date, "%Y-%m-%d")
+    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy().reset_index(drop=True)
+    date = se2.get_pm_date_hydrothermal(weather_data.rainfall, weather_data.air_tmax, weather_data.air_tmin, weather_data.evap_comb, weather_data.date)
+    # date = datetime.date.fromisoformat(str(date))
+    dt = datetime.datetime.strptime(str(date), "%Y-%m-%d")
     day_of_year = dt.timetuple().tm_yday
     pred_dates.append(day_of_year)
 
-    wd.loc[(wd.station_code == station_code) & (wd.year == row.Year), "fpm_sporacleEzy"] = ddf.FPM_cumsum.values
-df['doy_sporacleEzy'] = pred_dates
+df['se2'] = pred_dates
 
-# wd.to_csv("khangura2007_weather_1998-2000_incl_FPM.csv", index=False)
-# %%	Run blackleg_sporacle										 |
+rainfall = weather_data.rainfall
+air_tmax = tmax = weather_data.air_tmax
+air_tmin = tmin = weather_data.air_tmin
+date_sequence = weather_data.date
+evaporation = weather_data.evap_comb
 
-pred_dates = []
-for i, row in df.iterrows():
-    # break
-    station_code = station_map[row.Location]
-    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy()
-    ddf, date = blackleg_sporacle_run(weather_data)
-    dt = datetime.datetime.strptime(date, "%Y-%m-%d")
-    day_of_year = dt.timetuple().tm_yday
-    pred_dates.append(day_of_year)
+row = df.loc[(df.se2 -df.se) != 0]
 
-df['doy_blackleg_sporacle'] = pred_dates
+# %%											 |
+dfrac = df.frac.to_numpy()
+dfrac.shape
+air_tmax.shape
+temp_seq = np.interp(df.frac, [0, 1], [air_tmin[0], air_tmax[0]])
+
+# Interpolate along the new axis, broadcasting dfrac for each grid point
+air_tmin = np.array(air_tmin)[:, None]
+air_tmax = np.array(air_tmax)[:, None]
+temp_seq = air_tmin + (air_tmax - air_tmin) * dfrac[None,:]
+
+temp_seq[0]
+
+np.isclose(temp_seq[0], np.interp(df.frac, [0, 1], [air_tmin[0][0], air_tmax[0][0]]))
 
 
-# %%
-import plotly.express as px
-import statsmodels.api as sm
-import numpy as np
-from plotly.subplots import make_subplots
+# Verify the shape
+print(temp_seq.shape)  # Expected shape: (10, 4, 5, 5)
 
+
+# %%	compare outliers										 |
+# row = row.loc[10]
+# df = pd.DataFrame({'rainfall':rainfall, 'air_tmax':tmax, 'air_tmin':tmin, 'date_sequence':date_sequence})
+
+# np.isclose(df["rain7"], rainfall7)
+# np.isclose(df["air_tmean"], air_tmean)
+# np.isclose(df["air_tmean10"], air_tmean10)
+# np.isclose(df['FPM'], fpm)
+
+# fpm[:13]
+# df['FPM'][:13]
+# df["air_tmean10"][:13]
+# air_tmean10[:13]
+
+# df["air_tmean"][:13]
+# air_tmean[:13]
+
+# df["rainfall"][:13]
+# rainfall7[:13]
+# # wd.to_csv("khangura2007_weather_1998-2000_incl_FPM.csv", index=False)
+# %%	plot										 |
 def plot_regression(df, x_col, y_col, title):
     fig = px.scatter(df, x=x_col, y=y_col, title=title)
 
@@ -116,13 +141,8 @@ def plot_regression(df, x_col, y_col, title):
     fig.update_layout(xaxis_title='Day of Year (Min)', yaxis_title='Day of Year (Max)')
     fig.show()
 
-# Plot doy_sporacleEzy VS actual
-plot_regression(df, 'doy_min', 'doy_sporacleEzy', 'sporacleEzy VS actual')
-
-# Plot doy_blackleg_sporacle VS actual
-plot_regression(df, 'doy_min', 'doy_blackleg_sporacle', 'blackleg_sporacle VS actual')
 
 # Plot doy_hydrothermal VS actual
-plot_regression(df, 'doy_min', 'doy_hydrothermal', 'hydrothermal VS actual')
+plot_regression(df, 'se', 'se2', 'se VS se2 (vectorised)')
 
 # %%

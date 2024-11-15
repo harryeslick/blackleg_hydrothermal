@@ -1,5 +1,6 @@
 import logging
 from rasterio.plot import show
+import numpy as np
 import matplotlib.pyplot as plt
 import rasterio
 from rasterio.features import geometry_window
@@ -70,16 +71,19 @@ for variable in variables:
     grid_array = np.array(grids)
     all_grids[variable] = grid_array
 # %%
-all_grids.keys()
 
 
-layers = all_grids["daily_rain"].shape[0]
+# %%	vectorised										 |
+rainfall = all_grids["daily_rain"]
+tmax = all_grids["max_temp"]
+tmin = all_grids["min_temp"]
 
-for i in range(layers):
-    fmp = sporacleEzy_FMP(rainfall=all_grids["daily_rain"][i],
-                tmax=all_grids["max_temp"][i],
-                tmin= all_grids["min_temp"][i]
-                )
+fpm = sporacleEzy_FPM(rainfall, tmax, tmin)
+fpm.sum()
+fpm_cumsum = fpm.cumsum(axis=0)
+fpm_sum = fpm_cumsum[-1]
+show(fpm_sum)
+fpm_sum.shape
 
 
 # %%											 |
@@ -90,21 +94,52 @@ RAIN_THRESHOLD = 1.0
 T_LOWER_THRESHOLD = 6
 T_UPPER_THRESHOLD = 22
 
-def sporacleEzy_FMP(rainfall, tmax, tmin):
-    tmean = (tmax + tmin) /2
-    conditions = [
-        rainfall >= RAIN_THRESHOLD,
-        tmean >= T_LOWER_THRESHOLD,
-        tmean <= T_UPPER_THRESHOLD
-    ]
-    conditions = np.array(conditions)
-    return conditions.all(axis=0).astype(int)
+
+def sporacleEzy_FPM(rainfall, tmax, tmin):
+    tmean = (tmax + tmin) / 2
+    conditions = (rainfall >= RAIN_THRESHOLD) & (tmean >= T_LOWER_THRESHOLD) & (tmean <= T_UPPER_THRESHOLD)
+    return conditions.astype(int)
 
 
-def blackleg_sporacleEzy_run(df):
+def sporacleEzy_FPM_cumulative(rainfall, tmax, tmin):
+    assert rainfall.shape == tmax.shape == tmin.shape, "Input arrays must have the same shape"
 
-    df['FPM'] = df.apply(lambda row: sporacleEzy_FMP(row['rainfall'], row['air_tmax'], row['air_tmin']), axis=1)
-    df['FPM_cumsum'] = df['FPM'].cumsum()
-    pm_date = df.loc[(df['FPM_cumsum'] <= SAR_ON), "date"].iloc[-1]
-    print("pseudothecial maturation date", pm_date)
-    return df, pm_date
+    fpm = sporacleEzy_FPM(rainfall, tmax, tmin)
+    fpm_cumsum = fpm.cumsum(axis=0)
+    # current_pm = fpm_cumsum[-1]
+    return fpm_cumsum
+
+
+def get_pm_date_sporacleEzy(rainfall, tmax, tmin, date_sequence):
+    assert len(rainfall) == len(tmax) == len(tmin) == len(date_sequence), "All input arrays must have the same length"
+    fpm = sporacleEzy_FPM_cumulative(rainfall, tmax, tmin)
+    idx = np.argmax(fpm >= SAR_ON, axis=0)
+    pm_date = np.vectorize(lambda x: date_sequence[x])(idx)
+    return pm_date
+
+
+
+# %%											 |
+
+pred_dates = []
+for i, row in df.iterrows():
+    # break
+    station_code = station_map[row.Location]
+    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy().reset_index(drop=True)
+    ddf, date = blackleg_sporacleEzy_run(weather_data)
+    dt = datetime.datetime.strptime(date, "%Y-%m-%d")
+    pred_dates.append(dt)
+
+df['sporacleEzy_o2'] = pred_dates
+
+pred_dates = []
+for i, row in df.iterrows():
+    station_code = station_map[row.Location]
+    weather_data = wd.loc[(wd.station_code == station_code) & (wd.year == row.Year)].copy().reset_index(drop=True)
+    dt = get_pm_date_sporacleEzy(rainfall=weather_data.rainfall, tmax=weather_data.air_tmax, tmin=weather_data.air_tmin, date_sequence=weather_data.date)
+    pred_dates.append(dt)
+
+df['sporacleEzy_v'] = pred_dates
+# %%
+
+weather_data.date

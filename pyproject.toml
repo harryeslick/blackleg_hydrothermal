@@ -27,6 +27,7 @@ dev-dependencies = [
     "rioxarray>=0.18.1",
     "netcdf4>=1.7.2",
     "geopandas>=1.0.1",
+    "scipy>=1.14.1",
 ]
 
 [tool.hatch.metadata]

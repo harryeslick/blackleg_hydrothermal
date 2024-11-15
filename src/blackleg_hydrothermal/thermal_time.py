@@ -102,3 +102,45 @@ def gdd_sinusoidal(air_tmax, air_tmin,n_time_steps=24, tt_x = [0, 26, 34], tt_y 
     tt_seq = np.interp(temp_seq, tt_x, tt_y)
     tt = tt_seq.mean()
     return tt
+
+
+def gdd_sinusoidal_2d(air_tmax, air_tmin,n_time_steps=24, tt_x = [0, 26, 34], tt_y = [0, 26, 0]):
+    """
+    interpolate temperature sequence between daily min and max using sinusoidal approximation
+    accumulate tt for each time period using cardinal temperatures
+    Advantages over daily average: allows gdd accumulation for partial days when average temp outside of cardinal range
+
+    https://www.apsim.info/wp-content/uploads/2019/09/WheatDocumentation.pdf
+    https://builds.apsim.info/api/nextgen/docs/lifecycle.pdf
+
+    Args:
+        air_tmax: daily max air temperature
+        air_tmin: daily min air temperature
+        n_time_steps: The number of steps to divide a day into Defaults to 24 (hourly).
+        tt_x: temperature range[min, optimum, max]. Defaults to [0, 26, 34] (wheat).
+        tt_y: tt accumulation at each value of tt_x Defaults to [0, 26, 0] (wheat).
+
+    Returns:
+        Thermal time accumulation: float
+
+    Examples:
+    >>> df["gdd_sinusoidal"] = df.apply(lambda row: gdd_sinusoidal(row['air_tmax'], row['air_tmin']), axis=1)
+
+    """
+    assert all(air_tmax >= air_tmin), "air_tmax must be greater than air_tmin"
+    assert tt_x == sorted(tt_x), "tt_x must be in ascending order"
+
+    df = get_diurnal_fraction(n_segments=n_time_steps)
+    dfrac = df.frac.to_numpy()
+
+    # interpolate temperature sequence between daily min and max
+    air_tmin = np.array(air_tmin)[:, None]
+    air_tmax = np.array(air_tmax)[:, None]
+    temp_seq = air_tmin + (air_tmax - air_tmin) * dfrac[None,:]
+
+
+    # get tt for each time period using cardinal temperatures
+    tt_seq = np.interp(temp_seq, tt_x, tt_y)
+    # take the mean to give a single tt value for each day
+    tt = tt_seq.mean(axis=-1)
+    return tt
