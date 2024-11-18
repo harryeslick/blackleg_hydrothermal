@@ -33,7 +33,16 @@ def create_cog_url(variable, date: datetime.date):
     return cog_url
 
 
-def read_cog_arrays(startdate, enddate,  variables, aoi):
+def read_cog_arrays(startdate,
+                    enddate,
+                    aoi,
+                    variables =[
+                        "daily_rain",
+                        "max_temp",
+                        "min_temp",
+                        "evap_pan",
+                        ],
+                    ):
     """
     Read a sequence of COG weather files from SILO for a given date range and list of variables
 

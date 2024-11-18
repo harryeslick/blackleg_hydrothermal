@@ -1,0 +1,78 @@
+site_name: Blackleg Hydrothermal
+site_description: Python package to calculate blackleg pseudothecia maturation use three published models.
+site_author: harryeslick
+
+theme:
+    palette:
+      - media: "(prefers-color-scheme)"
+        toggle:
+          icon: material/link
+          name: Switch to light mode
+      - media: "(prefers-color-scheme: light)"
+        scheme: default
+        # primary: custom
+        # accent: custom
+        toggle:
+          icon: material/toggle-switch
+          name: Switch to dark mode
+      - media: "(prefers-color-scheme: dark)"
+        scheme: slate
+        toggle:
+          icon: material/toggle-switch-off
+          name: Switch to system preference
+
+    name: material
+    icon:
+        repo: fontawesome/brands/github
+
+    features:
+        - navigation.instant
+        - navigation.tracking
+        - navigation.top
+        - search.highlight
+        - search.share
+    font:
+        text: Google Sans
+        code: Noto Sans Mono
+
+plugins:
+    - search
+    - mkdocstrings
+    - mkdocs-jupyter:
+          include_source: True
+          ignore_h1_titles: False
+          execute: True
+          execute_ignore:
+              - "*.ipynb"
+          allow_errors: false
+          # ignore:
+          # execute_ignore:
+
+markdown_extensions:
+    - admonition
+    - abbr
+    - attr_list
+    - def_list
+    - footnotes
+    - meta
+    - md_in_html
+    - pymdownx.superfences
+    - pymdownx.highlight:
+          linenums: true
+    - toc:
+          permalink: true
+
+nav:
+    - Home: index.md
+    # - Installation: installation.md
+    # - Usage: usage.md
+    # - Contributing: contributing.md
+    # - FAQ: faq.md
+    # - Changelog: changelog.md
+    # - Report Issues: https://github.com/harryeslick/mkdocs_example/issues
+    - API Reference:
+          - Blackleg Hydrothermal: .md
+
+    - ipynb-examples:
+          - Blackleg Spatial Example: notebooks/blackleg_2d.ipynb
+          - Model Validation: notebooks/model2_vs_actual.py

@@ -127,8 +127,11 @@ def gdd_sinusoidal_2d(air_tmax, air_tmin,n_time_steps=24, tt_x = [0, 26, 34], tt
     >>> df["gdd_sinusoidal"] = df.apply(lambda row: gdd_sinusoidal(row['air_tmax'], row['air_tmin']), axis=1)
 
     """
-    np.array(air_tmax)[np.isnan(air_tmax)] = 0
-    np.array(air_tmin)[np.isnan(air_tmin)] = 0
+    air_tmax = np.array(air_tmax)
+    air_tmin = np.array(air_tmin)
+    air_tmax[np.isnan(air_tmax)] = 0
+    air_tmin[np.isnan(air_tmin)] = 0
+
     assert (air_tmax >= air_tmin).all(), "air_tmax must be greater than air_tmin"
     assert tt_x == sorted(tt_x), "tt_x must be in ascending order"
 

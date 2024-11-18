@@ -1,4 +1,4 @@
-"""
+# %%  [markdown]
 # Model Validation
 
 This script compares the predicted pseudothecial maturation dates from the hydrothermal model, sporacleEzy model, and blackleg_sporacle model with the actual pseudothecial maturation dates from Khangura et al. 2007.
@@ -6,6 +6,7 @@ This script compares the predicted pseudothecial maturation dates from the hydro
 Weather data source were source using the WeatherOz (r-package), via SILO patched point data.
 
 Weather data used for the following locations:
+
 | Location      | Stations                 | Code   |
 |---------------|--------------------------|--------|
 | East Chapman  | Nabawa                   | 008028 |
@@ -14,7 +15,6 @@ Weather data used for the following locations:
 | Wongan Hills  | Wongan Hills Res Station | 008138 |
 
 
-"""
 # %%	imports										 |
 import pandas as pd
 import datetime
@@ -27,6 +27,9 @@ import statsmodels.api as sm
 from blackleg_hydrothermal.hydrothermal_model_2d import get_pm_date_hydrothermal
 from blackleg_hydrothermal.blackleg_sporacle_model_2d import get_pm_date_blackleg_sporacle
 from blackleg_hydrothermal.sporacleEzy_model_2d import get_pm_date_sporacleEzy
+
+from IPython.display import HTML
+
 
 # %%											 |
 df = pd.read_csv("data/Pseudothecia_Maturity_Dates_khangura2007.csv")
@@ -112,7 +115,14 @@ def plot_regression(df, x_col, y_col, title):
     correlation = np.corrcoef(df[x_col], df[y_col])[0, 1]
     fig.add_annotation(x=0.05, y=0.98, text=f'Correlation: {correlation:.2f}', showarrow=False, xref='paper', yref='paper')
     fig.update_layout(xaxis_title='Day of Year (Observed)', yaxis_title='Day of Year (Predicted)')
-    fig.show()
+    return display(
+        HTML(
+            fig.to_html(
+                # full_html=True,
+                # include_plotlyjs="cdn",
+                full_html=True,
+                include_plotlyjs=True,
+            )))
 
 
 df["doy_mean"] = (df[" doy_max"] + df.doy_min) / 2
